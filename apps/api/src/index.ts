@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { prisma } from "@ai-grocery/db";
 
 const server = Fastify({ logger: true });
 
@@ -9,13 +10,6 @@ await server.register(cors, {
     "http://192.168.32.149:3000",
   ],
 });
-
-// Mock products
-const products = [
-  { id: "1", name: "Milk", category: "Dairy", createdAt: new Date().toISOString() },
-  { id: "2", name: "Bread", category: "Bakery", createdAt: new Date().toISOString() },
-  { id: "3", name: "Eggs", category: "Dairy", createdAt: new Date().toISOString() },
-];
 
 // GET /health
 server.get("/health", async () => {
@@ -28,7 +22,28 @@ server.get("/health", async () => {
 
 // GET /products
 server.get("/products", async () => {
+  const products = await prisma.product.findMany({
+    orderBy: { createdAt: "asc" },
+  });
   return products;
+});
+
+// POST /products
+server.post("/products", async (request, reply) => {
+  const { name } = request.body as { name?: string };
+
+  if (!name || typeof name !== "string" || name.trim().length === 0) {
+    return reply.status(400).send({
+      error: "Bad Request",
+      message: "name is required and must be a non-empty string",
+    });
+  }
+
+  const product = await prisma.product.create({
+    data: { name: name.trim() },
+  });
+
+  return reply.status(201).send(product);
 });
 
 try {
