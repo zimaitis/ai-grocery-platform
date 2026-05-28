@@ -7,9 +7,534 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =============================================================================
+// AI Grocery — Database Schema
+// =============================================================================
+//
+// Architecture alignment (see ai-grocery-architecture/ARCHITECTURE.md):
+//   Layer 1 – Canonical Model (source of truth, editable by user)
+//   Layer 2 – External Source & Mapping (raw imports preserved, idempotent)
+//   Layer 3 – Stores & Store Products (normalization bridge to canonical)
+//   Layer 4 – Purchase Facts (immutable, append-only)
+//   Layer 5 – User Preferences (manual overrides beat AI)
+//   Layer 6 – Recommendations Output (AI-generated, traceable, overrideable)
+//   Layer 7 – Support Tables (tags only; Brand/Unit/Currency are raw strings for MVP)
+//
+// Key principles:
+//   - Database is the source of truth, not AI
+//   - Raw import payloads are preserved (SourceDocument.rawText/parsedJson)
+//   - Imports are idempotent (@@unique constraints on external IDs)
+//   - Manual user corrections override AI output
+//   - Purchase facts are immutable (no updatedAt on Purchase/PurchaseItem)
+// =============================================================================
+
+// ── Enums ───────────────────────────────────────────────────────────
+
+enum SourceType {
+  ONLINE_GROCERY
+  PHYSICAL_STORE
+  RECEIPT_MANUAL
+  CSV_IMPORT
+}
+
+enum SourceDocumentType {
+  BARBORA_ORDER
+  RECEIPT_IMAGE
+  CSV_EXPORT
+  MANUAL_ENTRY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+enum RecommendationPolicyMode {
+  preferred_only
+  prefer_known
+  explore_allowed
+  avoid
+  must_buy
+}
+
+enum RecommendationListStatus {
+  draft
+  active
+  archived
+}
+
+enum RecommendationItemType {
+  restock
+  substitute
+  discovery
+  price_alert
+}
+
+// =============================================================================
+// Layer 1 — Canonical Model
+// =============================================================================
+
+model CanonicalCategory {
+  id          String   @id @default(cuid())
+  parentId    String?
+  name        String
+  slug        String
+  level       Int
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   CanonicalCategory?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children CanonicalCategory[] @relation("CategoryParent")
+
+  products                   Product[]
+  categoryMappings           CategoryMapping[]
+  purchaseItems              PurchaseItem[]             @relation("PurchaseItemCategory")
+  userRecommendationPolicies UserRecommendationPolicy[]
+
+  @@map("canonical_category")
+}
+
 model Product {
-  id        String   @id @default(cuid())
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  canonicalCategoryId String?
+  defaultUnit         String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  canonicalCategory CanonicalCategory? @relation(fields: [canonicalCategoryId], references: [id])
+
+  attributes             ProductAttribute[]
+  productAttributeLinks  ProductAttributeLink[]
+  storeProducts          StoreProduct[]
+  purchaseItems          PurchaseItem[]          @relation("PurchaseItemProduct")
+  userProductPreferences UserProductPreference[]
+  recommendationItems    RecommendationItem[]
+  productTags            ProductTag[]
+
+  @@index([canonicalCategoryId])
+  @@index([isActive])
+  @@index([name])
+  @@map("product")
+}
+
+model ProductAttribute {
+  id           String   @id @default(cuid())
+  productId    String
+  name         String
+  dataType     String
+  unit         String?
+  isFilterable Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  product                Product                 @relation(fields: [productId], references: [id])
+  values                 ProductAttributeValue[]
+  storeProductAttributes StoreProductAttribute[]
+
+  @@index([productId])
+  @@map("product_attribute")
+}
+
+model ProductAttributeValue {
+  id          String   @id @default(cuid())
+  attributeId String
+  value       String
+  sortOrder   Int?
+  createdAt   DateTime @default(now())
+
+  attribute ProductAttribute       @relation(fields: [attributeId], references: [id])
+  links     ProductAttributeLink[]
+
+  @@index([attributeId])
+  @@map("product_attribute_value")
+}
+
+model ProductAttributeLink {
+  productId        String
+  attributeValueId String
+
+  product        Product               @relation(fields: [productId], references: [id])
+  attributeValue ProductAttributeValue @relation(fields: [attributeValueId], references: [id])
+
+  @@id([productId, attributeValueId])
+  @@index([attributeValueId])
+  @@map("product_attribute_link")
+}
+
+// =============================================================================
+// Layer 2 — External Source & Mapping
+// =============================================================================
+
+model Source {
+  id        String     @id @default(cuid())
+  code      String     @unique
   name      String
+  type      SourceType
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+
+  externalCategories ExternalCategory[]
+  stores             Store[]
+  sourceDocuments    SourceDocument[]
+
+  @@map("source")
+}
+
+/// External categories from import sources. @@unique ensures idempotent re-imports.
+model ExternalCategory {
+  id               String     @id @default(cuid())
+  sourceId         String
+  externalId       String
+  parentExternalId String?
+  name             String
+  slug             String?
+  level            Int
+  productCount     Int?
+  rawData          Json?
+  lastSeenAt       DateTime?
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  source           Source            @relation(fields: [sourceId], references: [id])
+  categoryMappings CategoryMapping[]
+
+  @@index([sourceId])
+  @@index([externalId])
+  @@unique([sourceId, externalId])
+  @@map("external_category")
+}
+
+model CategoryMapping {
+  id                  String   @id @default(cuid())
+  externalCategoryId  String
+  canonicalCategoryId String
+  confidence          Float
+  mappingSource       String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  externalCategory  ExternalCategory  @relation(fields: [externalCategoryId], references: [id])
+  canonicalCategory CanonicalCategory @relation(fields: [canonicalCategoryId], references: [id])
+
+  @@index([externalCategoryId])
+  @@index([canonicalCategoryId])
+  @@unique([externalCategoryId, canonicalCategoryId])
+  @@map("category_mapping")
+}
+
+// =============================================================================
+// Layer 3 — Stores & Store Products
+// =============================================================================
+
+model Store {
+  id        String   @id @default(cuid())
+  sourceId  String
+  name      String
+  brand     String?
+  address   String?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  source        Source         @relation(fields: [sourceId], references: [id])
+  storeProducts StoreProduct[]
+  purchases     Purchase[]
+
+  @@index([sourceId])
+  @@map("store")
+}
+
+/// Store-specific product listing. Linked to canonical Product via productId (optional until normalized).
+/// externalId = source system product ID for idempotent re-import.
+/// normalizationStatus lifecycle: pending → suggested → confirmed | rejected | unmappable.
+model StoreProduct {
+  id                  String   @id @default(cuid())
+  storeId             String
+  productId           String?
+  externalId          String?
+  rawData             Json?
+  normalizationStatus String   @default("pending")
+  name                String
+  brand               String?
+  eanCodes            String[]
+  packageSize         String?
+  unitPrice           Decimal? @db.Decimal(10, 4)
+  currency            String   @default("EUR")
+  isActive            Boolean  @default(true)
+  firstSeenAt         DateTime?
+  lastSeenAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  store   Store    @relation(fields: [storeId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  prices                 StoreProductPrice[]
+  attributes             StoreProductAttribute[]
+  purchaseItems          PurchaseItem[]
+  userProductPreferences UserProductPreference[]
+  recommendationItems    RecommendationItem[]
+
+  @@index([storeId])
+  @@index([productId])
+  @@index([isActive])
+  @@index([externalId])
+  @@index([name])
+  @@index([normalizationStatus])
+  @@unique([storeId, externalId])
+  @@map("store_product")
+}
+
+model StoreProductAttribute {
+  id             String   @id @default(cuid())
+  storeProductId String
+  attributeId    String
+  attributeValue String
+  createdAt      DateTime @default(now())
+
+  storeProduct StoreProduct     @relation(fields: [storeProductId], references: [id])
+  attribute    ProductAttribute @relation(fields: [attributeId], references: [id])
+
+  @@index([storeProductId])
+  @@index([attributeId])
+  @@map("store_product_attribute")
+}
+
+model StoreProductPrice {
+  id             String    @id @default(cuid())
+  storeProductId String
+  price          Decimal   @db.Decimal(10, 4)
+  currency       String    @default("EUR")
+  validFrom      DateTime
+  validTo        DateTime?
+  isPromo        Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id])
+
+  @@index([storeProductId])
+  @@index([validFrom])
+  @@unique([storeProductId, validFrom])
+  @@index([storeProductId, validFrom])
+  @@map("store_product_price")
+}
+
+// =============================================================================
+// Layer 4 — Purchase Facts
+// =============================================================================
+
+/// Purchase facts are immutable. Source documents are preserved raw per Architecture Rule #4.
+model SourceDocument {
+  id                 String             @id @default(cuid())
+  sourceId           String
+  type               SourceDocumentType
+  externalOrderNumber String?
+  documentDate       DateTime
+  filePath           String?
+  rawText            String?
+  parsedJson         Json?
+  createdAt          DateTime           @default(now())
+
+  source    Source     @relation(fields: [sourceId], references: [id])
+  purchases Purchase[]
+
+  @@index([sourceId])
+  @@unique([sourceId, externalOrderNumber])
+  @@map("source_document")
+}
+
+model Purchase {
+  id               String        @id @default(cuid())
+  sourceDocumentId String
+  storeId          String
+  purchasedAt      DateTime
+  totalAmount      Decimal       @db.Decimal(10, 2)
+  currency         String        @default("EUR")
+  paymentStatus    PaymentStatus
+  createdAt        DateTime      @default(now())
+
+  sourceDocument SourceDocument @relation(fields: [sourceDocumentId], references: [id])
+  store          Store          @relation(fields: [storeId], references: [id])
+  items          PurchaseItem[]
+
+  @@index([sourceDocumentId])
+  @@index([storeId])
+  @@index([purchasedAt])
+  @@map("purchase")
+}
+
+/// Purchase items are immutable fact records (no updatedAt).
+/// TODO: Enforce at API layer that at least one of productId or storeProductId must be present.
+model PurchaseItem {
+  id                  String   @id @default(cuid())
+  purchaseId          String
+  storeProductId      String?
+  productId           String?
+  canonicalCategoryId String?
+  rawName             String
+  eanCodes            String[]
+  orderedQuantity     Decimal  @db.Decimal(10, 4)
+  collectedQuantity   Decimal  @db.Decimal(10, 4)
+  unit                String
+  unitPrice           Decimal  @db.Decimal(10, 4)
+  lineTotal           Decimal  @db.Decimal(10, 2)
+  discountAmount      Decimal? @db.Decimal(10, 2)
+  createdAt           DateTime @default(now())
+
+  purchase          Purchase           @relation(fields: [purchaseId], references: [id])
+  storeProduct      StoreProduct?      @relation(fields: [storeProductId], references: [id])
+  product           Product?           @relation("PurchaseItemProduct", fields: [productId], references: [id])
+  canonicalCategory CanonicalCategory? @relation("PurchaseItemCategory", fields: [canonicalCategoryId], references: [id])
+
+  @@index([purchaseId])
+  @@index([storeProductId])
+  @@index([productId])
+  @@index([canonicalCategoryId])
+  @@map("purchase_item")
+}
+
+// =============================================================================
+// Layer 5 — User Preferences
+// =============================================================================
+
+model AppUser {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  userProductPreferences     UserProductPreference[]
+  userRecommendationPolicies UserRecommendationPolicy[]
+  recommendationLists        RecommendationList[]
+
+  @@map("app_user")
+}
+
+model UserProductPreference {
+  id                      String   @id @default(cuid())
+  userId                  String
+  productId               String
+  preferredStoreProductId String?
+  strength                Int
+  source                  String
+  note                    String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user         AppUser       @relation(fields: [userId], references: [id])
+  product      Product       @relation(fields: [productId], references: [id])
+  storeProduct StoreProduct? @relation(fields: [preferredStoreProductId], references: [id])
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("user_product_preference")
+}
+
+model UserRecommendationPolicy {
+  id                  String                    @id @default(cuid())
+  userId              String
+  canonicalCategoryId String?
+  mode                RecommendationPolicyMode
+  priority            Int                       @default(0)
+  isActive            Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  user              AppUser            @relation(fields: [userId], references: [id])
+  canonicalCategory CanonicalCategory? @relation(fields: [canonicalCategoryId], references: [id])
+
+  @@unique([userId, canonicalCategoryId, mode])
+  @@index([userId])
+  @@index([canonicalCategoryId])
+  @@map("user_recommendation_policy")
+}
+
+// =============================================================================
+// Layer 6 — Recommendations Output
+// =============================================================================
+
+model RecommendationList {
+  id        String                    @id @default(cuid())
+  userId    String
+  createdAt DateTime                  @default(now())
+  context   Json?
+  status    RecommendationListStatus
+
+  user  AppUser              @relation(fields: [userId], references: [id])
+  items RecommendationItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("recommendation_list")
+}
+
+model RecommendationItem {
+  id                   String                @id @default(cuid())
+  recommendationListId String
+  productId            String?
+  storeProductId       String?
+  type                 RecommendationItemType
+  reason               String?
+  score                Float?
+  rank                 Int
+  createdAt            DateTime              @default(now())
+
+  recommendationList RecommendationList          @relation(fields: [recommendationListId], references: [id])
+  product            Product?                    @relation(fields: [productId], references: [id])
+  storeProduct       StoreProduct?               @relation(fields: [storeProductId], references: [id])
+  explanations       RecommendationExplanation[]
+
+  @@index([recommendationListId])
+  @@index([productId])
+  @@index([rank])
+  @@map("recommendation_item")
+}
+
+model RecommendationExplanation {
+  id                   String   @id @default(cuid())
+  recommendationItemId String
+  type                 String
+  message              String
+  data                 Json?
+  createdAt            DateTime @default(now())
+
+  recommendationItem RecommendationItem @relation(fields: [recommendationItemId], references: [id])
+
+  @@index([recommendationItemId])
+  @@map("recommendation_explanation")
+}
+
+// =============================================================================
+// Layer 7 — Support Tables
+// =============================================================================
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  productTags ProductTag[]
+
+  @@map("tag")
+}
+
+model ProductTag {
+  productId String
+  tagId     String
+
+  product Product @relation(fields: [productId], references: [id])
+  tag     Tag     @relation(fields: [tagId], references: [id])
+
+  @@id([productId, tagId])
+  @@index([tagId])
+  @@map("product_tag")
 }
