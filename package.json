@@ -5,7 +5,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "db:generate": "pnpm --filter @ai-grocery/db db:generate",
+    "db:migrate": "pnpm --filter @ai-grocery/db db:migrate",
+    "db:seed": "pnpm --filter @ai-grocery/db db:seed"
   },
   "devDependencies": {
     "turbo": "^2.5.1",

@@ -11,6 +11,7 @@
     "lint": "echo 'lint ok'"
   },
   "dependencies": {
+    "@ai-grocery/db": "workspace:*",
     "@fastify/cors": "^10.0.2",
     "fastify": "^5.2.1"
   },

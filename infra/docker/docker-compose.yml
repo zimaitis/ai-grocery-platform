@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ai-grocery-db
+    environment:
+      POSTGRES_DB: ai_grocery
+      POSTGRES_USER: ai_grocery
+      POSTGRES_PASSWORD: ai_grocery_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

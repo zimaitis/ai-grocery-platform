@@ -9,6 +9,9 @@
       "cache": false,
       "persistent": true
     },
+    "db:generate": {
+      "outputs": ["node_modules/.prisma/**"]
+    },
     "lint": {},
     "typecheck": {
       "dependsOn": ["^build"]
