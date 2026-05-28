@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev --name init",
+    "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -16,6 +16,7 @@
     "@prisma/client": "^6.5.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
     "prisma": "^6.5.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.0"

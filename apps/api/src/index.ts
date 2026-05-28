@@ -30,7 +30,12 @@ server.get("/products", async () => {
 
 // POST /products
 server.post("/products", async (request, reply) => {
-  const { name } = request.body as { name?: string };
+  const { name, canonicalCategoryId, description, defaultUnit } = request.body as {
+    name?: string;
+    canonicalCategoryId?: string;
+    description?: string;
+    defaultUnit?: string;
+  };
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     return reply.status(400).send({
@@ -40,7 +45,12 @@ server.post("/products", async (request, reply) => {
   }
 
   const product = await prisma.product.create({
-    data: { name: name.trim() },
+    data: {
+      name: name.trim(),
+      canonicalCategoryId: canonicalCategoryId ?? null,
+      description: description ?? null,
+      defaultUnit: defaultUnit ?? null,
+    },
   });
 
   return reply.status(201).send(product);
