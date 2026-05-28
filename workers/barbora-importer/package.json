@@ -1,0 +1,19 @@
+{
+  "name": "@ai-grocery/barbora-importer",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "import:categories": "tsx src/import-categories.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "lint": "echo 'lint ok'"
+  },
+  "dependencies": {
+    "@ai-grocery/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}
