@@ -12,12 +12,17 @@
     "barbora:check-session": "tsx scripts/barbora/orders-api-to-files.ts check-session",
     "barbora:orders-api-to-files": "tsx scripts/barbora/orders-api-to-files.ts collect",
     "barbora:categories-json-to-db": "pnpm --filter @ai-grocery/barbora-importer categories-json-to-db",
-    "barbora:orders-files-to-db": "# TODO: .tmp/barbora -> SourceDocument, Purchase, PurchaseItem, StoreProduct",
+    "barbora:orders-files-to-db": "tsx scripts/barbora/orders-files-to-db.ts",
     "barbora:products-api-to-db": "# TODO: Barbora product/category/search API -> StoreProduct enrichment",
     "barbora:documents-api-to-files": "# TODO: Barbora invoice/waybill PDF API -> .tmp/barbora/documents"
   },
   "devDependencies": {
+    "@playwright/browser-chromium": "^1.60.0",
     "@types/node": "^22.10.0",
+    "dotenv": "^17.4.2",
+    "playwright": "^1.60.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "tsx": "^4.19.2",
     "turbo": "^2.5.1",
     "typescript": "^5.7.0"
