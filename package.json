@@ -9,8 +9,12 @@
     "db:generate": "pnpm --filter @ai-grocery/db db:generate",
     "db:migrate": "pnpm --filter @ai-grocery/db db:migrate",
     "db:seed": "pnpm --filter @ai-grocery/db db:seed",
-    "barbora:validate-session": "tsx scripts/barbora/collect-orders.ts validate-session",
-    "barbora:collect": "tsx scripts/barbora/collect-orders.ts collect"
+    "barbora:check-session": "tsx scripts/barbora/orders-collect.ts check-session",
+    "barbora:orders-collect": "tsx scripts/barbora/orders-collect.ts collect",
+    "barbora:taxonomy-import": "pnpm --filter @ai-grocery/barbora-importer taxonomy-import",
+    "barbora:purchases-import": "# TODO: import .tmp/barbora -> SourceDocument/Purchase/PurchaseItem",
+    "barbora:products-enrich": "# TODO: enrich products with AI",
+    "barbora:documents-collect": "# TODO: download PDF invoices"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

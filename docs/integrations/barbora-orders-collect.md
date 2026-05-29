@@ -1,12 +1,24 @@
-# Barbora Collector
+# Barbora Orders Collect (Stage 2)
 
-> **Phase 1 — Raw API Collection Only.** No database writes, no product parsing, no AI models, no BullMQ queues, no PDF downloads.
+> **Stage 2 — Raw API Collection Only.** No database writes, no product parsing, no AI models, no BullMQ queues, no PDF downloads.
+
+## Pipeline Overview
+
+The Barbora integration runs in stages to decouple concerns:
+
+| Stage | Command | Status |
+|---|---|---|
+| 1 — Taxonomy Import | `pnpm barbora:taxonomy-import` | ✅ Implemented |
+| 2 — Orders Collect | `pnpm barbora:orders-collect` | ✅ Implemented |
+| 3 — Purchases Import | `pnpm barbora:purchases-import` | 📋 Planned |
+| 4 — Products Enrich | `pnpm barbora:products-enrich` | 📋 Planned |
+| 5 — Documents Collect | `pnpm barbora:documents-collect` | 📋 Planned |
 
 ## Purpose
 
 This worker collects raw JSON data from the Barbora.lt e-grocery API and saves it as local JSON files. It exists solely to decouple API-scraping logic from database-import logic.
 
-Downstream processes (Phase 2+) will read the saved JSON files and handle DB writes, normalization, and enrichment independently.
+Downstream processes (Stage 3+) will read the saved JSON files and handle DB writes, normalization, and enrichment independently.
 
 ## Prerequisites
 
@@ -44,12 +56,12 @@ pnpm install
 
 ## Commands
 
-### Validate Session
+### Check Session
 
 Tests that your cookie and customer ID work with the Barbora API:
 
 ```bash
-pnpm barbora:validate-session
+pnpm barbora:check-session
 ```
 
 On success:
@@ -71,7 +83,7 @@ JSON parse: FAILED — ...
 Fetches the order list (paginated) and optionally fetches each order's details:
 
 ```bash
-pnpm barbora:collect
+pnpm barbora:orders-collect
 ```
 
 This will:
@@ -104,7 +116,7 @@ This will:
 ├── manifest.json        # Collection metadata
 ├── errors.json          # Failed requests (only if errors occurred)
 ├── validation/
-│   └── session.json     # validate-session response
+│   └── session.json     # check-session response
 ├── order-list/
 │   ├── page-001.json    # Order list page 1
 │   ├── page-002.json    # Order list page 2
@@ -140,7 +152,7 @@ This will:
 
 ## Next Phase
 
-Phase 2 (DB Importer) will read from `.tmp/barbora/raw/` and:
+Stage 3 (Purchases Import) will read from `.tmp/barbora/orders/` and:
 - Parse the raw JSON into structured records
 - Create `source_document`, `purchase`, and `purchase_item` records
 - Link to `external_categories`

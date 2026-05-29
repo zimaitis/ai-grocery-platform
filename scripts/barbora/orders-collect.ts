@@ -7,7 +7,7 @@
  * No database writes, no product parsing, no AI, no BullMQ, no PDFs.
  *
  * Sub-commands:
- *   validate-session  — test the Barbora API session
+ *   check-session  — test the Barbora API session
  *   collect           — fetch order list + optional order details
  */
 
@@ -214,10 +214,10 @@ const DEFAULT_FILTERS = JSON.stringify({
 });
 
 // ---------------------------------------------------------------------------
-// Sub-command: validate-session
+// Sub-command: check-session
 // ---------------------------------------------------------------------------
 
-async function validateSession(): Promise<void> {
+async function checkSession(): Promise<void> {
   const filtersEncoded = encodeURIComponent(DEFAULT_FILTERS);
   const url = `${apiBaseUrl}/api/eshop/v1/order/list?limit=1&offset=0&filters=${filtersEncoded}`;
 
@@ -394,17 +394,17 @@ async function main(): Promise<void> {
   const subCommand = process.argv[2] ?? "collect";
 
   switch (subCommand) {
-    case "validate-session":
-      await validateSession();
+    case "check-session":
+      await checkSession();
       break;
     case "collect":
       await collect();
       break;
     default:
-      console.log("Usage: tsx scripts/barbora/collect-orders.ts [command]");
+      console.log("Usage: tsx scripts/barbora/orders-collect.ts [command]");
       console.log("");
       console.log("Commands:");
-      console.log("  validate-session    Test Barbora API session cookie");
+      console.log("  check-session    Test Barbora API session cookie");
       console.log("  collect             Fetch orders and details (default)");
       process.exit(1);
   }

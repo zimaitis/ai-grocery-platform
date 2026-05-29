@@ -1,13 +1,15 @@
-# Barbora Importer
+# Barbora Taxonomy Import (Stage 1)
 
-Imports Barbora.lt data into the AI Grocery platform.
+Imports Barbora.lt category taxonomy into the AI Grocery platform.
+
+This is **Stage 1** of the Barbora pipeline (see `docs/integrations/barbora-orders-collect.md` for the full pipeline overview).
 
 ## Scripts
 
 ### Import Categories
 
 ```bash
-pnpm import:categories [path/to/categoryTree.json]
+pnpm barbora:taxonomy-import [path/to/categoryTree.json]
 ```
 
 Imports the Barbora category tree into `ExternalCategory`. Idempotent — safe to rerun.
