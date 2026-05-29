@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ThemeMode = "system" | "light" | "dark";
 
@@ -122,48 +124,23 @@ export default function HomePage() {
   const themeOptions: ThemeMode[] = ["system", "light", "dark"];
 
   return (
-    <main
-      style={{
-        maxWidth: 640,
-        margin: "40px auto",
-        padding: "0 20px",
-      }}
-    >
-      {/* Header with title and theme toggle */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 32,
-        }}
-      >
-        <h1 style={{ margin: 0 }}>🛒 AI Grocery</h1>
+    <main className="mx-auto max-w-[640px] px-5 py-10">
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="m-0 text-2xl font-bold">🛒 AI Grocery</h1>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 4,
-            background: "var(--surface)",
-            borderRadius: 8,
-            padding: 4,
-            border: "1px solid var(--border)",
-          }}
-        >
+        {/* Theme toggle group */}
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
           {themeOptions.map((opt) => (
             <button
               key={opt}
               onClick={() => setTheme(opt)}
-              style={{
-                padding: "6px 12px",
-                fontSize: 13,
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                background: theme === opt ? "var(--primary)" : "transparent",
-                color: theme === opt ? "#fff" : "var(--text)",
-                transition: "background 0.15s, color 0.15s",
-              }}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+                theme === opt
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               {themeLabel[opt].icon} {themeLabel[opt].label}
             </button>
@@ -171,94 +148,54 @@ export default function HomePage() {
         </div>
       </div>
 
-      <section
-        style={{
-          marginBottom: 32,
-          background: "var(--surface)",
-          padding: 20,
-          borderRadius: 12,
-          border: "1px solid var(--border)",
-        }}
-      >
-        <h2 style={{ margin: "0 0 8px 0", fontSize: 18 }}>Status</h2>
+      {/* Status Card */}
+      <section className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="m-0 mb-2 text-lg font-semibold">Status</h2>
         {error ? (
-          <p style={{ color: "var(--error)", margin: 0 }}>
+          <p className="m-0 text-destructive">
             ⚠️ {error}
           </p>
         ) : health ? (
-          <p style={{ color: "var(--success)", margin: 0 }}>
-            ✅ API {health.status} — uptime {Math.floor(health.uptime)}s
+          <p className="m-0 text-success">
+            ✅ API {health.status} &mdash; uptime {Math.floor(health.uptime)}s
           </p>
         ) : (
-          <p style={{ color: "var(--muted)", margin: 0 }}>Connecting…</p>
+          <p className="m-0 text-muted-foreground">Connecting&hellip;</p>
         )}
       </section>
 
-      <section
-        style={{
-          marginBottom: 32,
-          background: "var(--surface)",
-          padding: 20,
-          borderRadius: 12,
-          border: "1px solid var(--border)",
-        }}
-      >
-        <h2 style={{ margin: "0 0 12px 0", fontSize: 18 }}>Add Product</h2>
-        <form onSubmit={handleCreate} style={{ display: "flex", gap: 8 }}>
+      {/* Add Product Card */}
+      <section className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="m-0 mb-3 text-lg font-semibold">Add Product</h2>
+        <form onSubmit={handleCreate} className="flex gap-2">
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Product name…"
+            placeholder="Product name&hellip;"
             disabled={creating}
-            style={{
-              flex: 1,
-              padding: "8px 12px",
-              fontSize: 16,
-              border: "1px solid var(--border)",
-              borderRadius: 6,
-              background: "var(--input-bg)",
-              color: "var(--text)",
-              outline: "none",
-            }}
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           />
-          <button
+          <Button
             type="submit"
             disabled={creating || !newName.trim()}
-            style={{
-              padding: "8px 16px",
-              fontSize: 16,
-              background: "var(--primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              cursor: creating || !newName.trim() ? "not-allowed" : "pointer",
-              opacity: !newName.trim() ? 0.5 : 1,
-              transition: "opacity 0.15s",
-            }}
           >
-            {creating ? "Adding…" : "Add"}
-          </button>
+            {creating ? "Adding&hellip;" : "Add"}
+          </Button>
         </form>
       </section>
 
-      <section
-        style={{
-          background: "var(--surface)",
-          padding: 20,
-          borderRadius: 12,
-          border: "1px solid var(--border)",
-        }}
-      >
-        <h2 style={{ margin: "0 0 12px 0", fontSize: 18 }}>Products</h2>
+      {/* Products Card */}
+      <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="m-0 mb-3 text-lg font-semibold">Products</h2>
         {products.length === 0 && !error ? (
-          <p style={{ color: "var(--muted)", margin: 0 }}>
+          <p className="m-0 text-muted-foreground">
             No products yet. Add one above!
           </p>
         ) : (
-          <ul style={{ paddingLeft: 20, margin: 0 }}>
+          <ul className="m-0 space-y-1 pl-5">
             {products.map((p) => (
-              <li key={p.id} style={{ padding: "6px 0", color: "var(--text)" }}>
+              <li key={p.id} className="py-1 text-foreground">
                 {p.name}
               </li>
             ))}
