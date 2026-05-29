@@ -8,9 +8,13 @@
     "typecheck": "turbo typecheck",
     "db:generate": "pnpm --filter @ai-grocery/db db:generate",
     "db:migrate": "pnpm --filter @ai-grocery/db db:migrate",
-    "db:seed": "pnpm --filter @ai-grocery/db db:seed"
+    "db:seed": "pnpm --filter @ai-grocery/db db:seed",
+    "barbora:validate-session": "tsx scripts/barbora/collect-orders.ts validate-session",
+    "barbora:collect": "tsx scripts/barbora/collect-orders.ts collect"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
     "turbo": "^2.5.1",
     "typescript": "^5.7.0"
   },
