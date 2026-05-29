@@ -1,4 +1,4 @@
-# Barbora Orders Collect (Stage 2)
+# Barbora Orders API to Files (Stage 2)
 
 > **Stage 2 — Raw API Collection Only.** No database writes, no product parsing, no AI models, no BullMQ queues, no PDF downloads.
 
@@ -8,11 +8,11 @@ The Barbora integration runs in stages to decouple concerns:
 
 | Stage | Command | Status |
 |---|---|---|
-| 1 — Taxonomy Import | `pnpm barbora:taxonomy-import` | ✅ Implemented |
-| 2 — Orders Collect | `pnpm barbora:orders-collect` | ✅ Implemented |
-| 3 — Purchases Import | `pnpm barbora:purchases-import` | 📋 Planned |
-| 4 — Products Enrich | `pnpm barbora:products-enrich` | 📋 Planned |
-| 5 — Documents Collect | `pnpm barbora:documents-collect` | 📋 Planned |
+| 1 — Categories JSON to DB | `pnpm barbora:categories-json-to-db` | ✅ Implemented |
+| 2 — Orders API to Files | `pnpm barbora:orders-api-to-files` | ✅ Implemented |
+| 3 — Orders Files to DB | `pnpm barbora:orders-files-to-db` | 📋 Planned |
+| 4 — Products API to DB | `pnpm barbora:products-api-to-db` | 📋 Planned |
+| 5 — Documents API to Files | `pnpm barbora:documents-api-to-files` | 📋 Planned |
 
 ## Purpose
 
@@ -83,7 +83,7 @@ JSON parse: FAILED — ...
 Fetches the order list (paginated) and optionally fetches each order's details:
 
 ```bash
-pnpm barbora:orders-collect
+pnpm barbora:orders-api-to-files
 ```
 
 This will:
@@ -152,7 +152,7 @@ This will:
 
 ## Next Phase
 
-Stage 3 (Purchases Import) will read from `.tmp/barbora/orders/` and:
+Stage 3 (Orders Files to DB) will read from `.tmp/barbora/orders/` and:
 - Parse the raw JSON into structured records
 - Create `source_document`, `purchase`, and `purchase_item` records
 - Link to `external_categories`

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "taxonomy-import": "tsx src/import-categories.ts",
+    "categories-json-to-db": "tsx src/import-categories.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "lint": "echo 'lint ok'"

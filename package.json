@@ -9,12 +9,12 @@
     "db:generate": "pnpm --filter @ai-grocery/db db:generate",
     "db:migrate": "pnpm --filter @ai-grocery/db db:migrate",
     "db:seed": "pnpm --filter @ai-grocery/db db:seed",
-    "barbora:check-session": "tsx scripts/barbora/orders-collect.ts check-session",
-    "barbora:orders-collect": "tsx scripts/barbora/orders-collect.ts collect",
-    "barbora:taxonomy-import": "pnpm --filter @ai-grocery/barbora-importer taxonomy-import",
-    "barbora:purchases-import": "# TODO: import .tmp/barbora -> SourceDocument/Purchase/PurchaseItem",
-    "barbora:products-enrich": "# TODO: enrich products with AI",
-    "barbora:documents-collect": "# TODO: download PDF invoices"
+    "barbora:check-session": "tsx scripts/barbora/orders-api-to-files.ts check-session",
+    "barbora:orders-api-to-files": "tsx scripts/barbora/orders-api-to-files.ts collect",
+    "barbora:categories-json-to-db": "pnpm --filter @ai-grocery/barbora-importer categories-json-to-db",
+    "barbora:orders-files-to-db": "# TODO: .tmp/barbora -> SourceDocument, Purchase, PurchaseItem, StoreProduct",
+    "barbora:products-api-to-db": "# TODO: Barbora product/category/search API -> StoreProduct enrichment",
+    "barbora:documents-api-to-files": "# TODO: Barbora invoice/waybill PDF API -> .tmp/barbora/documents"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

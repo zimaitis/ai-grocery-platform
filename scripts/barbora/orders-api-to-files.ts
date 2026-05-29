@@ -1,14 +1,16 @@
 #!/usr/bin/env tsx
 
 /**
- * Barbora Raw Order Collection Worker
+ * Barbora Orders API to Files Worker
  *
- * Phase 1 — raw API collection only.
+ * Fetches order data from Barbora API and saves as local JSON files.
  * No database writes, no product parsing, no AI, no BullMQ, no PDFs.
  *
  * Sub-commands:
  *   check-session  — test the Barbora API session
- *   collect           — fetch order list + optional order details
+ *   collect        — fetch order list + optional order details
+ *
+ * Usage: tsx scripts/barbora/orders-api-to-files.ts [command]
  */
 
 // ---------------------------------------------------------------------------
@@ -401,11 +403,11 @@ async function main(): Promise<void> {
       await collect();
       break;
     default:
-      console.log("Usage: tsx scripts/barbora/orders-collect.ts [command]");
+      console.log("Usage: tsx scripts/barbora/orders-api-to-files.ts [command]");
       console.log("");
       console.log("Commands:");
       console.log("  check-session    Test Barbora API session cookie");
-      console.log("  collect             Fetch orders and details (default)");
+      console.log("  collect          Fetch orders and details (default)");
       process.exit(1);
   }
 }
